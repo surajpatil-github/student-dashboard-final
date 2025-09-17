@@ -25,7 +25,7 @@ export function trainRegressor(data: Student[]) {
   // params
   const m = Xs.length;
   const n = Xs[0].length;
-  let w = new Array(n).fill(0); // weights
+  const w = new Array(n).fill(0); // weights
   let b = 0; // bias
   const lr = 0.05,
     iters = 1200;
