@@ -11,18 +11,20 @@ import StudentsTable from "./components/StudentsTable";
 import Insights from "./components/Insights";
 
 export default function Page() {
-  // ----- data (server-side) -----
   const students = makeStudents(300, 123);
 
   const { avgScore, avgSkills, corr } = summary(students);
   const { personas } = kmeans(students, 3);
 
-  // If trainRegressor returns r2, use it; otherwise compute from corr as fallback
+  // ❌ no 'any' — safely read r2
   let computedR2 = 0;
   try {
-    const maybe = trainRegressor(students) as any;
-    if (maybe?.r2 && Number.isFinite(maybe.r2)) computedR2 = maybe.r2;
+    const result = trainRegressor(students);
+    if (typeof result?.r2 === "number" && Number.isFinite(result.r2)) {
+      computedR2 = result.r2;
+    }
   } catch {}
+
   const r2 =
     computedR2 ||
     (Math.max(
@@ -32,7 +34,6 @@ export default function Page() {
       }),
     ) || 0);
 
-  // skill vs score correlations -> clean, finite numbers
   const corrBar = [
     { skill: "comprehension", corr: Number(corr.comprehension ?? 0) },
     { skill: "attention", corr: Number(corr.attention ?? 0) },
@@ -41,13 +42,11 @@ export default function Page() {
     { skill: "engagement_time", corr: Number(corr.engagement_time ?? 0) },
   ].filter((d) => Number.isFinite(d.corr));
 
-  // scatter: attention vs assessment_score
   const scatter = students.slice(0, 200).map((s) => ({
     x: s.attention,
     y: s.assessment_score,
   }));
 
-  // radar example: one student (guard for empty arrays)
   const radarRow = (i: number) =>
     students.length === 0
       ? []
@@ -59,7 +58,6 @@ export default function Page() {
           { label: "Eng", value: students[i].engagement_time },
         ];
 
-  // ----- render (color-only improvements) -----
   return (
     <main className="min-h-screen bg-gradient-to-br from-indigo-950 via-slate-950 to-indigo-900 text-white p-6 md:p-10">
       <div className="mx-auto max-w-7xl space-y-8">
@@ -67,7 +65,10 @@ export default function Page() {
           <h1 className="text-2xl md:text-4xl font-bold tracking-tight">
             Cognitive Skills & Student Performance
           </h1>
-          <ThemeBadge />
+          <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs md:text-sm">
+            <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+            Live • Student Persona
+          </span>
         </header>
 
         <StatsCards avgScore={avgScore} avgSkills={avgSkills} r2={r2} />
@@ -106,14 +107,5 @@ export default function Page() {
         </section>
       </div>
     </main>
-  );
-}
-
-function ThemeBadge() {
-  return (
-    <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs md:text-sm">
-      <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-      Live • Student Persona
-    </span>
   );
 }

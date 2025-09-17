@@ -20,24 +20,18 @@ export default function StudentsTable({
   students,
   personas,
 }: {
-  students?: Student[];          // <-- optional + safe default
-  personas?: string[];           // <-- optional
+  students?: Student[];
+  personas?: string[];
 }) {
-  // Build rows safely even if props are missing or lengths differ
   const rows: Row[] = useMemo(() => {
     const list = students ?? [];
-    return list.map((s, i) => ({
-      ...s,
-      persona: personas?.[i] ?? '—',
-    }));
+    return list.map((s, i) => ({ ...s, persona: personas?.[i] ?? '—' }));
   }, [students, personas]);
 
-  // UI state
   const [q, setQ] = useState('');
   const [sortKey, setSortKey] = useState<keyof Row>('assessment_score');
   const [asc, setAsc] = useState(false);
 
-  // Filter & sort (all guarded)
   const filtered = useMemo(() => {
     const query = q.trim().toLowerCase();
     if (!query) return rows;
@@ -47,34 +41,29 @@ export default function StudentsTable({
   const sorted = useMemo(() => {
     const arr = [...filtered];
     return arr.sort((a, b) => {
-      const av = a[sortKey] as any;
-      const bv = b[sortKey] as any;
-
-      // numeric sort when possible
+      const av = a[sortKey];
+      const bv = b[sortKey];
       if (typeof av === 'number' && typeof bv === 'number') {
         return (asc ? 1 : -1) * (av - bv);
       }
-      // fallback to string compare
       return (asc ? 1 : -1) * String(av).localeCompare(String(bv));
     });
   }, [filtered, sortKey, asc]);
 
-  // ✨ Dark/glassy styles (no logic changes)
-  const th =
-    'text-left px-4 py-2 font-medium cursor-pointer select-none text-white/80 hover:text-white';
-  const td = 'px-4 py-2';
+  const th = 'text-left p-3 font-medium cursor-pointer select-none';
+  const td = 'p-3';
 
   return (
-    <section className="rounded-2xl border border-white/10 overflow-x-auto p-4 md:p-5 bg-white/5 shadow-lg shadow-black/20 backdrop-blur">
-      <div className="flex flex-wrap items-center gap-3 mb-4">
+    <section className="rounded-xl border overflow-x-auto p-4">
+      <div className="flex items-center gap-3 mb-3">
         <input
-          className="rounded-md px-3 py-2 w-64 bg-white/10 text-white placeholder-white/60 border border-white/20 focus:outline-none focus:ring-2 focus:ring-emerald-400/40 focus:border-emerald-400/40"
+          className="border rounded-md p-2 w-64"
           placeholder="Search by name..."
           value={q}
           onChange={(e) => setQ(e.target.value)}
         />
         <select
-          className="rounded-md px-3 py-2 bg-white/10 text-white border border-white/20 focus:outline-none focus:ring-2 focus:ring-indigo-400/40"
+          className="border rounded-md p-2"
           value={sortKey as string}
           onChange={(e) => setSortKey(e.target.value as keyof Row)}
         >
@@ -90,18 +79,16 @@ export default function StudentsTable({
           <option value="student_id">student_id</option>
         </select>
         <button
-          className="rounded-md px-3 py-2 bg-gradient-to-br from-indigo-500/20 to-fuchsia-500/20 text-white border border-white/20 hover:border-white/30 transition"
+          className="border rounded-md px-3 py-2"
           onClick={() => setAsc((v) => !v)}
           aria-label="toggle sort direction"
-          aria-pressed={asc}
-          title="Toggle sort direction"
         >
           {asc ? 'Asc' : 'Desc'}
         </button>
       </div>
 
-      <table className="min-w-full text-sm text-white/90">
-        <thead className="bg-white/10">
+      <table className="min-w-full text-sm">
+        <thead className="bg-gray-50">
           <tr>
             <th className={th} onClick={() => setSortKey('persona')}>Persona</th>
             <th className={th} onClick={() => setSortKey('student_id')}>student_id</th>
@@ -115,13 +102,9 @@ export default function StudentsTable({
             <th className={th} onClick={() => setSortKey('assessment_score')}>assessment_score</th>
           </tr>
         </thead>
-
         <tbody>
           {sorted.map((s) => (
-            <tr
-              key={s.student_id}
-              className="border-t border-white/10 hover:bg-white/5 even:bg-white/[0.04] transition-colors"
-            >
+            <tr key={s.student_id} className="border-t even:bg-gray-50/60">
               <td className={td}>{s.persona}</td>
               <td className={td}>{s.student_id}</td>
               <td className={td}>{s.name}</td>
@@ -137,7 +120,7 @@ export default function StudentsTable({
 
           {sorted.length === 0 && (
             <tr>
-              <td className="p-6 text-center text-white/60" colSpan={10}>
+              <td className="p-6 text-center text-gray-500" colSpan={10}>
                 No students to display.
               </td>
             </tr>
