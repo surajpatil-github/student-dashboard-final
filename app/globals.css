@@ -1,15 +1,16 @@
+/* app/globals.css */
 @import "tailwindcss";
 
+/* ---- base tokens ---- */
 :root {
   --background: #ffffff;
   --foreground: #171717;
-}
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  /* dashboard accents */
+  --brand-500: #6366f1;   /* indigo */
+  --brand-900: #1e1b4b;   /* deep indigo */
+  --brand-950: #0b1020;   /* near-black */
+  --emerald-400: #34d399; /* accent */
 }
 
 @media (prefers-color-scheme: dark) {
@@ -19,8 +20,51 @@
   }
 }
 
+html, body { height: 100%; }
+
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans, Arial, Helvetica, sans-serif);
 }
+
+/* ---- reusable surfaces ---- */
+.card { @apply rounded-2xl border border-white/10 bg-white/5 p-4 md:p-5 shadow-lg shadow-black/20 backdrop-blur; }
+.card-title { @apply mb-2 text-lg font-semibold text-white/90; }
+.chart-container { @apply rounded-xl border border-white/10 bg-black/20 p-3; }
+
+.stat-card { @apply rounded-2xl border border-white/10 bg-gradient-to-br from-white/10 to-white/[0.03] p-5 shadow hover:shadow-xl transition-shadow; }
+.stat-label { @apply text-sm text-white/60; }
+.stat-value { @apply text-2xl md:text-3xl font-bold text-white; }
+
+/* ---- inputs/selects/buttons (used in StudentsTable) ---- */
+input[type="text"], .input {
+  @apply rounded-md px-3 py-2 bg-white/10 text-white placeholder-white/60
+         border border-white/20 focus:outline-none focus:ring-2
+         focus:ring-emerald-400/40 focus:border-emerald-400/40;
+}
+select, .select {
+  @apply rounded-md px-3 py-2 bg-white/10 text-white border border-white/20
+         focus:outline-none focus:ring-2 focus:ring-indigo-400/40;
+}
+button, .btn {
+  @apply rounded-md px-3 py-2 bg-gradient-to-br from-indigo-500/20 to-fuchsia-500/20
+         text-white border border-white/20 hover:border-white/30 transition;
+}
+
+/* ---- table helpers ---- */
+.table { @apply min-w-full text-sm text-white/90; }
+.thead { @apply bg-white/10; }
+.tr { @apply border-t border-white/10 hover:bg-white/5 even:bg-white/[0.04] transition-colors; }
+
+/* ---- FIX: native <select> popup (the white box) ---- */
+select option,
+select optgroup {
+  background-color: #1e1b4b !important; /* deep indigo */
+  color: #e5e7eb !important;            /* readable text */
+}
+
+/* ---- optional nicer scrollbar ---- */
+* { scrollbar-width: thin; scrollbar-color: #6ee7b7 #0b1020; }
+*::-webkit-scrollbar { width: 8px; height: 8px; }
+*::-webkit-scrollbar-thumb { background: linear-gradient(180deg, #34d399, #6366f1); border-radius: 9999px; }

@@ -1,65 +1,89 @@
-import { Student } from "./types";
+// lib/data.ts
+import type { Student } from './types';
 
-
-// simple seeded RNG so the dataset is same across builds
-function mulberry32(a: number) {
-return function () {
-let t = (a += 0x6d2b79f5);
-t = Math.imul(t ^ (t >>> 15), t | 1);
-t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-};
+// --- tiny PRNG (deterministic) ---
+type RNG = () => number;
+function mulberry32(seed: number): RNG {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = Math.imul(a ^ (a >>> 15), a | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296; // [0,1)
+  };
 }
 
+// --- helpers ---
+const clamp = (v: number, min: number, max: number) =>
+  v < min ? min : v > max ? max : v;
 
-function randNorm(rng: () => number, mean: number, std: number) {
-// Box–Muller
-const u = 1 - rng();
-const v = 1 - rng();
-const z = Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
-return mean + z * std;
+// Box–Muller normal RNG (guarded, fast)
+function randNorm(rng: RNG, mean: number, std: number) {
+  // 1 - rng() keeps u in (0,1]; mulberry32 never returns 1 exactly.
+  const u = 1 - rng();
+  const v = 1 - rng();
+  const z = Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+  return mean + z * std;
 }
 
+// Fast int in [0, max)
+const randInt = (rng: RNG, max: number) => (rng() * max) | 0;
 
-const firstNames = ["Aarav","Ishita","Rahul","Sneha","Vihaan","Ananya","Arjun","Meera","Rohan","Priya","Karan","Isha","Kabir","Aditi","Neha","Sanjay","Riya","Dev","Aarohi","Ansh"];
-const lastNames = ["Patil","Reddy","Sharma","Gupta","Kumar","Iyer","Nair","Singh","Das","Roy"];
-const classes = ["Grade 8","Grade 9","Grade 10"];
+// --- source pools ---
+const FIRST_NAMES = [
+  'Aarav','Ishita','Rahul','Sneha','Vihaan','Ananya','Arjun','Meera','Rohan','Priya',
+  'Karan','Isha','Kabir','Aditi','Neha','Sanjay','Riya','Dev','Aarohi','Ansh',
+] as const;
 
+const LAST_NAMES = [
+  'Patil','Reddy','Sharma','Gupta','Kumar','Iyer','Nair','Singh','Das','Roy',
+] as const;
 
+const CLASSES = ['Grade 8', 'Grade 9', 'Grade 10'] as const;
+
+// --- main API ---
 export function makeStudents(n = 300, seed = 42): Student[] {
-const rng = mulberry32(seed);
-const students: Student[] = [];
+  const rng = mulberry32(seed);
+  const out: Student[] = new Array(n);
 
+  const fnLen = FIRST_NAMES.length;
+  const lnLen = LAST_NAMES.length;
+  const clsLen = CLASSES.length;
 
-for (let i = 0; i < n; i++) {
-const name = `${firstNames[Math.floor(rng()*firstNames.length)]} ${lastNames[Math.floor(rng()*lastNames.length)]}`;
-const cls = classes[Math.floor(rng()*classes.length)];
+  for (let i = 0; i < n; i++) {
+    const name = `${FIRST_NAMES[randInt(rng, fnLen)]} ${LAST_NAMES[randInt(rng, lnLen)]}`;
+    const cls = CLASSES[randInt(rng, clsLen)];
 
+    // latent skills (clamped + rounded once)
+    const comprehension = Math.round(clamp(randNorm(rng, 70, 15), 0, 100));
+    const attention     = Math.round(clamp(randNorm(rng, 65, 18), 0, 100));
+    const focus         = Math.round(clamp(randNorm(rng, 68, 16), 0, 100));
+    const retention     = Math.round(clamp(randNorm(rng, 66, 17), 0, 100));
+    const engagement    = Math.round(clamp(randNorm(rng, 60, 20), 0, 120));
 
-// generate latent skill base and add small correlations
-const comprehension = Math.min(100, Math.max(0, randNorm(rng, 70, 15)));
-const attention = Math.min(100, Math.max(0, randNorm(rng, 65, 18)));
-const focus = Math.min(100, Math.max(0, randNorm(rng, 68, 16)));
-const retention = Math.min(100, Math.max(0, randNorm(rng, 66, 17)));
-const engagement = Math.min(120, Math.max(0, randNorm(rng, 60, 20)));
+    // weighted assessment + mild noise
+    const scoreRaw =
+      0.28 * comprehension +
+      0.22 * attention +
+      0.22 * focus +
+      0.18 * retention +
+      0.10 * (engagement / 1.2) +
+      randNorm(rng, 0, 5);
 
+    const assessment_score = Math.round(clamp(scoreRaw, 0, 100));
 
-// assessment score as weighted mix + noise
-const scoreRaw = 0.28*comprehension + 0.22*attention + 0.22*focus + 0.18*retention + 0.10*(engagement/1.2) + randNorm(rng, 0, 5);
-const assessment_score = Math.round(Math.min(100, Math.max(0, scoreRaw)));
+    out[i] = {
+      student_id: `S${1000 + i}`,
+      name,
+      class: cls,
+      comprehension,
+      attention,
+      focus,
+      retention,
+      engagement_time: engagement,
+      assessment_score,
+    };
+  }
 
-
-students.push({
-student_id: `S${1000+i}`,
-name,
-class: cls,
-comprehension: Math.round(comprehension),
-attention: Math.round(attention),
-focus: Math.round(focus),
-retention: Math.round(retention),
-engagement_time: Math.round(engagement),
-assessment_score,
-});
-}
-return students;
+  return out;
 }
