@@ -88,7 +88,7 @@ export default function StudentsTable({
       </div>
 
       <table className="min-w-full text-sm">
-        <thead className="bg-gray-50">
+        <thead className="bg-gray-50 text-gray-800 dark:bg-gray-700 dark:text-gray-100">
           <tr>
             <th className={th} onClick={() => setSortKey('persona')}>Persona</th>
             <th className={th} onClick={() => setSortKey('student_id')}>student_id</th>
